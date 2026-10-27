@@ -6,6 +6,9 @@ const { isValidUser, getOrgForUser } = require('./userOrgMap');
 
 const router = express.Router();
 
+// JWT Secret — defined FIRST so authenticateToken middleware can reference it
+const JWT_SECRET = process.env.JWT_SECRET || 'land-registration-jwt-secret';
+
 // Middleware to verify JWT token
 const authenticateToken = (req, res, next) => {
   const authHeader = req.headers.authorization;
@@ -53,9 +56,6 @@ const users = {
   'ministry_welfare1': { password: 'mw123', role: 'ministry_welfare', org: 'org3' },
   'ministry_welfare': { password: 'mw123', role: 'ministry_welfare', org: 'org3' }
 };
-
-// JWT Secret (in production, use environment variable)
-const JWT_SECRET = process.env.JWT_SECRET || 'land-registration-jwt-secret';
 
 // Login endpoint
 router.post('/login', async (req, res) => {
@@ -133,41 +133,16 @@ router.get('/me', authenticateToken, async (req, res) => {
   }
 });
 
-// Logout
+// Logout — disconnects user from Fabric network and signals client to clear JWT
 router.post('/logout', authenticateToken, async (req, res) => {
   try {
-    // In a stateless JWT system, logout is handled client-side
-    // by removing the token from client storage
-    res.json({
-      success: true,
-      message: 'Logged out successfully'
-    });
+    const username = req.user.username;
+    // Disconnect from Fabric network
+    await fabricClient.disconnect(username);
+    res.json({ success: true, message: 'Logged out successfully' });
   } catch (error) {
     console.error('Logout error:', error);
     res.status(500).json({ error: 'Logout failed' });
-  }
-});
-
-// Logout endpoint
-router.post('/logout', async (req, res) => {
-  try {
-    const authHeader = req.headers.authorization;
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      return res.status(401).json({ error: 'No token provided' });
-    }
-
-    const token = authHeader.substring(7);
-    const decoded = jwt.verify(token, JWT_SECRET);
-    const username = decoded.username;
-
-    // Disconnect from Fabric network
-    await fabricClient.disconnect(username);
-
-    res.json({ success: true, message: 'Logged out successfully' });
-
-  } catch (error) {
-    console.error('Logout error:', error);
-    res.status(500).json({ error: 'Internal server error' });
   }
 });
 

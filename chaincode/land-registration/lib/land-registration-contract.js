@@ -342,8 +342,10 @@ class LandRegistrationContract extends Contract {
         const application = JSON.parse(applicationAsBytes.toString());
 
         // Check if application is in correct state
-        if (application.status !== 'verified') {
-            throw new Error(`Application ${applicationId} is not in verified state`);
+        // Allow final approval from either 'verified' or 'with_ministry_welfare' status
+        const approvalAllowedStatuses = ['verified', 'with_ministry_welfare', 'with_collector'];
+        if (!approvalAllowedStatuses.includes(application.status)) {
+            throw new Error(`Application ${applicationId} cannot be approved from status '${application.status}'. Allowed statuses: ${approvalAllowedStatuses.join(', ')}`);
         }
 
         // Parse approval data
@@ -444,12 +446,19 @@ class LandRegistrationContract extends Contract {
      * Internal helper to generate M9 AI-OCR Data
      */
     _generateAIOCRData(application) {
+        // Read actual decrypted owner name from userData — fallback to placeholder only if missing
+        const ownerName = (application.userData && application.userData.fullName)
+            ? application.userData.fullName
+            : (application.userData && application.userData.name)
+                ? application.userData.name
+                : 'Unknown Owner';
+
         return {
-            extractedOwner: application.userData ? application.userData.fullName || "Harika Devi" : "Harika Devi",
-            extractedSurveyNo: application.surveyNumber || "SY-9012/C",
-            extractedArea: application.area || "175",
-            aiEngine: "Tesseract-NLP-v4",
-            processingTime: "1.2s"
+            extractedOwner: ownerName,
+            extractedSurveyNo: application.surveyNumber || application.userData?.surveyNumber || 'N/A',
+            extractedArea: application.area || application.userData?.area || 'N/A',
+            aiEngine: 'Tesseract-NLP-v4',
+            processingTime: '1.2s'
         };
     }
 
@@ -542,6 +551,150 @@ class LandRegistrationContract extends Contract {
         console.info('============= END : Record Document Integrity ===========');
         return JSON.stringify(integrityRecord);
     }
+
+    // ============================================================
+    // GIS ENHANCEMENT FUNCTIONS — Group 4 Addition
+    // ============================================================
+
+    /**
+     * Store GeoJSON polygon SHA-256 hash on blockchain.
+     * Full polygon is stored in PostGIS; only the hash goes on-chain (keeps ledger lightweight).
+     */
+    async storeLandBoundary(ctx, parcelId, polygonHash, boundingBoxStr, areaSqm) {
+        console.info('============= START : Store Land Boundary ===========');
+
+        const cid = ctx.clientIdentity;
+        const key = ctx.stub.createCompositeKey('boundary', [parcelId]);
+        const existing = await ctx.stub.getState(key);
+
+        const record = {
+            parcelId,
+            polygonHash,
+            boundingBox: JSON.parse(boundingBoxStr),
+            areaSqm: parseFloat(areaSqm),
+            recordedBy: cid.getAttributeValue('hf.EnrollmentID') || cid.getID(),
+            mspId: cid.getMSPID(),
+            timestamp: ctx.stub.getTxTimestamp().seconds.toString(),
+            updatedAt: ctx.stub.getTxTimestamp().seconds.toString(),
+            version: (existing && existing.length > 0)
+                ? (JSON.parse(existing.toString()).version || 0) + 1
+                : 1,
+            type: 'GIS_BOUNDARY'
+        };
+
+        await ctx.stub.putState(key, Buffer.from(JSON.stringify(record)));
+        console.info('============= END : Store Land Boundary ===========');
+        return JSON.stringify(record);
+    }
+
+    /**
+     * Verify a polygon hash has not been tampered with.
+     * Anyone can re-hash the PostGIS polygon and compare with what is stored on-chain.
+     */
+    async verifyBoundaryHash(ctx, parcelId, incomingHash) {
+        console.info('============= START : Verify Boundary Hash ===========');
+
+        const key = ctx.stub.createCompositeKey('boundary', [parcelId]);
+        const data = await ctx.stub.getState(key);
+
+        if (!data || data.length === 0) {
+            throw new Error(`No boundary record found for parcel ${parcelId}`);
+        }
+
+        const record = JSON.parse(data.toString());
+        const valid = record.polygonHash === incomingHash;
+
+        console.info('============= END : Verify Boundary Hash ===========');
+        return JSON.stringify({ valid, storedHash: record.polygonHash, parcelId });
+    }
+
+    /**
+     * Store satellite-verified land-use type on blockchain.
+     * Called by the GIS API after the FastAPI satellite service returns classification.
+     */
+    async updateLandUseType(ctx, parcelId, verifiedType, confidence) {
+        console.info('============= START : Update Land Use Type ===========');
+
+        const cid = ctx.clientIdentity;
+        const key = ctx.stub.createCompositeKey('boundary', [parcelId]);
+        const data = await ctx.stub.getState(key);
+
+        if (!data || data.length === 0) {
+            throw new Error(`No boundary record found for parcel ${parcelId}`);
+        }
+
+        const record = JSON.parse(data.toString());
+        record.satelliteVerifiedType = verifiedType;
+        record.confidence = parseFloat(confidence);
+        record.satelliteVerifiedAt = ctx.stub.getTxTimestamp().seconds.toString();
+        record.satelliteVerifiedBy = cid.getMSPID();
+        record.updatedAt = ctx.stub.getTxTimestamp().seconds.toString();
+
+        await ctx.stub.putState(key, Buffer.from(JSON.stringify(record)));
+        console.info('============= END : Update Land Use Type ===========');
+        return JSON.stringify(record);
+    }
+
+    /**
+     * Flag a boundary conflict between two overlapping parcels.
+     * Creates an immutable conflict record on-chain for audit purposes.
+     */
+    async flagBoundaryConflict(ctx, parcelId, conflictingParcelId, overlapAreaSqm) {
+        console.info('============= START : Flag Boundary Conflict ===========');
+
+        const cid = ctx.clientIdentity;
+        const conflictRecord = {
+            parcelId,
+            conflictingParcelId,
+            overlapAreaSqm: parseFloat(overlapAreaSqm),
+            flaggedBy: cid.getAttributeValue('hf.EnrollmentID') || cid.getID(),
+            flaggedByMsp: cid.getMSPID(),
+            flaggedAt: ctx.stub.getTxTimestamp().seconds.toString(),
+            status: 'PENDING_RESOLUTION',
+            type: 'BOUNDARY_CONFLICT'
+        };
+
+        const key = ctx.stub.createCompositeKey('conflict', [parcelId, conflictingParcelId]);
+        await ctx.stub.putState(key, Buffer.from(JSON.stringify(conflictRecord)));
+
+        console.info('============= END : Flag Boundary Conflict ===========');
+        return JSON.stringify(conflictRecord);
+    }
+
+    /**
+     * Get full tamper-proof history of boundary changes for a parcel.
+     * Uses Hyperledger Fabric key history — blockchain-level audit trail.
+     */
+    async getBoundaryHistory(ctx, parcelId) {
+        console.info('============= START : Get Boundary History ===========');
+
+        const key = ctx.stub.createCompositeKey('boundary', [parcelId]);
+        const iterator = await ctx.stub.getHistoryForKey(key);
+        const history = [];
+
+        let result = await iterator.next();
+        while (!result.done) {
+            history.push({
+                txId: result.value.txId,
+                timestamp: result.value.timestamp
+                    ? new Date(Number(result.value.timestamp.seconds) * 1000).toISOString()
+                    : null,
+                isDelete: result.value.isDelete,
+                value: (result.value.value && result.value.value.length > 0)
+                    ? JSON.parse(result.value.value.toString())
+                    : null
+            });
+            result = await iterator.next();
+        }
+
+        await iterator.close();
+        console.info('============= END : Get Boundary History ===========');
+        return JSON.stringify(history);
+    }
+
+    // ============================================================
+    // END GIS ENHANCEMENT FUNCTIONS
+    // ============================================================
 
     /**
      * Query applications by status

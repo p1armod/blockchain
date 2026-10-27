@@ -1,5 +1,6 @@
 const express = require('express');
 const fabricClient = require('./fabricClient');
+const { authenticateToken } = require('./authController');
 
 const router = express.Router();
 
@@ -90,7 +91,7 @@ router.post('/applications', async (req, res) => {
 });
 
 // Verify application by revenue department
-router.post('/applications/:id/verify', async (req, res) => {
+router.post('/applications/:id/verify', authenticateToken, async (req, res) => {
   try {
     const { id } = req.params;
     const { officerData } = req.body;
@@ -99,9 +100,8 @@ router.post('/applications/:id/verify', async (req, res) => {
       return res.status(400).json({ error: 'Officer data is required' });
     }
 
-    // For now, get username from request body (passed from dashboard)
-    // TODO: Implement proper authentication
-    const username = 'admin-registration'; // Use admin-registration for all operations (Org1)
+    // Use JWT-decoded username — correct org identity
+    const username = req.user.username;
 
     // Connect to fabric network
     await fabricClient.connect(username);
@@ -124,7 +124,7 @@ router.post('/applications/:id/verify', async (req, res) => {
 });
 
 // Update survey report
-router.post('/applications/:id/survey', async (req, res) => {
+router.post('/applications/:id/survey', authenticateToken, async (req, res) => {
   try {
     const { id } = req.params;
     const { surveyData } = req.body;
@@ -133,9 +133,8 @@ router.post('/applications/:id/survey', async (req, res) => {
       return res.status(400).json({ error: 'Survey data is required' });
     }
 
-    // For now, get username from request body (passed from dashboard)
-    // TODO: Implement proper authentication
-    const username = 'admin-registration'; // Use admin-registration for all operations (Org1)
+    // Use JWT-decoded username — correct org identity (must be Org2)
+    const username = req.user.username;
 
     // Connect to fabric network
     await fabricClient.connect(username);
@@ -192,7 +191,7 @@ router.post('/applications/:id/forward', async (req, res) => {
 });
 
 // Approve application by collector
-router.post('/applications/:id/approve', async (req, res) => {
+router.post('/applications/:id/approve', authenticateToken, async (req, res) => {
   try {
     const { id } = req.params;
     const { approvalData } = req.body;
@@ -201,9 +200,8 @@ router.post('/applications/:id/approve', async (req, res) => {
       return res.status(400).json({ error: 'Approval data is required' });
     }
 
-    // For now, get username from request body (passed from dashboard)
-    // TODO: Implement proper authentication
-    const username = 'admin-registration'; // Use admin-registration for all operations (Org1)
+    // Use JWT-decoded username — correct org identity (must be Org3)
+    const username = req.user.username;
 
     // Connect to fabric network
     await fabricClient.connect(username);

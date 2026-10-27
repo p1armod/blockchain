@@ -11,6 +11,7 @@
     "test": "jest"
   },
   "dependencies": {
+    "@turf/turf": "^6.5.0",
     "app-root-path": "^3.1.0",
     "bcryptjs": "^2.4.3",
     "body-parser": "^1.20.2",
@@ -21,11 +22,18 @@
     "fabric-network": "^2.2.20",
     "fabric-protos": "^2.2.20",
     "jsonwebtoken": "^9.0.2",
-    "jsrsasign": "^11.1.0"
+    "jsrsasign": "^11.1.0",
+    "pg": "^8.11.3"
   },
   "devDependencies": {
     "jest": "^29.7.0",
-    "nodemon": "^3.0.2"
+    "nodemon": "^3.0.2",
+    "supertest": "^7.0.0"
+  },
+  "jest": {
+    "testEnvironment": "node",
+    "testMatch": ["**/__tests__/**/*.test.js"],
+    "testTimeout": 30000
   },
   "overrides": {
     "jsrsasign": "^11.1.0"
