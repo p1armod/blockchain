@@ -137,3 +137,11 @@ Client (Next.js)  →  fabric-api (Express)  →  Fabric Chaincode  →  Ledger
 - **Bottleneck:** Fabric endorsement (≈100ms). PostGIS and satellite service add <50ms each.
 - **Optimization:** For read-heavy GIS queries (map view), serve directly from PostGIS — bypass chaincode.
 - **Scalability:** PostGIS GIST index handles millions of parcels. Fabric network scales with additional peers/orderers.
+
+
+## Overlap Detection Speed (2026-10-27T10:52:47.256Z)
+
+| Parcel Count | Turf.js (in-memory) | PostGIS (spatial index) |
+|---|---|---|
+| 100 | 19.2ms (0 conflicts) | 43.5ms |
+| 500 | 225.0ms (15 conflicts) | 88.8ms |

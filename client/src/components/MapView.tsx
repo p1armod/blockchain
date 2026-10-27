@@ -39,6 +39,7 @@ export default function MapView({ onBoundsChange, children, center = [17.385, 78
 
       const map = L.map(containerRef.current!, { center, zoom });
       mapRef.current = map;
+      (containerRef.current as any)._leaflet_map = map;
 
       L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
         attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
@@ -82,6 +83,3 @@ export default function MapView({ onBoundsChange, children, center = [17.385, 78
     </div>
   );
 }
-
-// Export map ref for child components
-export { mapRef as globalMapRef };

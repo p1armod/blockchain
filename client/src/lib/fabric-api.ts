@@ -115,7 +115,8 @@ export const auth = {
 export const gisApi = {
   /** Fetch all parcels within a bounding box */
   getParcelsInArea: async (minX: number, minY: number, maxX: number, maxY: number) => {
-    const params = new URLSearchParams({ minX: String(minX), minY: String(minY), maxX: String(maxX), maxY: String(maxY) });
+    // gisController expects minLon/minLat/maxLon/maxLat
+    const params = new URLSearchParams({ minLon: String(minX), minLat: String(minY), maxLon: String(maxX), maxLat: String(maxY) });
     return apiCall(`${API_CONFIG.ENDPOINTS.GIS.PARCELS_IN_AREA}?${params}`);
   },
 

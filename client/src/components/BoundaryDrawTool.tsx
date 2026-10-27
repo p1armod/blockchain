@@ -17,6 +17,30 @@ interface BoundaryDrawToolProps {
   parcelId?: string;
 }
 
+function calculatePolygonAreaSqm(feature: GeoJSON.Feature): number {
+  try {
+    const geom = feature.geometry as GeoJSON.Polygon;
+    const coords = geom?.coordinates?.[0];
+    if (!coords || coords.length < 3) return 0;
+    const radius = 6378137;
+    let area = 0;
+    const len = coords.length;
+    for (let i = 0; i < len; i++) {
+      const p1 = coords[i];
+      const p2 = coords[(i + 1) % len];
+      const x1 = (p1[0] * Math.PI) / 180;
+      const y1 = (p1[1] * Math.PI) / 180;
+      const x2 = (p2[0] * Math.PI) / 180;
+      const y2 = (p2[1] * Math.PI) / 180;
+      area += (x2 - x1) * (2 + Math.sin(y1) + Math.sin(y2));
+    }
+    area = Math.abs((area * radius * radius) / 2.0);
+    return Math.round(area);
+  } catch {
+    return 0;
+  }
+}
+
 /**
  * BoundaryDrawTool — draws polygons on the map, shows area, checks overlap.
  * Mounts a Leaflet.draw toolbar on the existing map instance.
@@ -104,8 +128,7 @@ export default function BoundaryDrawTool({ onPolygonDrawn, onOverlapDetected, pa
           drawnItems.addLayer(e.layer);
 
           const geojson: GeoJSON.Feature = e.layer.toGeoJSON();
-          const turf = await import('@turf/turf');
-          const areaSqm = Math.round(turf.area(geojson));
+          const areaSqm = calculatePolygonAreaSqm(geojson);
 
           const newPolygon: DrawnPolygon = { geoJSON: geojson, areaSqm, hasOverlap: null };
           setDrawnPolygon(newPolygon);

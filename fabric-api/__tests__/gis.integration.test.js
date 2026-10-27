@@ -2,11 +2,19 @@
  * Integration tests for GIS REST API endpoints.
  * Run with: npm test
  *
- * Mocks: postgisClient, overlapDetector, fabricClient
+ * Mocks: postgisClient, overlapDetector, fabricClient, @turf/turf
  * (so no live Fabric network or PostGIS is needed)
  */
 
 'use strict';
+
+// Mock @turf/turf before any module loads it (ESM compat fix)
+jest.mock('@turf/turf', () => ({
+  area: jest.fn(() => 5000),
+  feature: jest.fn((g, p = {}) => ({ type: 'Feature', geometry: g, properties: p })),
+  featureCollection: jest.fn((f) => ({ type: 'FeatureCollection', features: f })),
+  intersect: jest.fn(() => null),
+}));
 
 jest.mock('../src/postgisClient');
 jest.mock('../src/overlapDetector');

@@ -2,7 +2,8 @@
 
 import { useState, useEffect } from 'react';
 import { gisApi } from '@/lib/fabric-api';
-import { FiSatellite, FiAlertTriangle, FiCheckCircle, FiLoader } from 'react-icons/fi';
+import { FiAlertTriangle, FiCheckCircle, FiLoader } from 'react-icons/fi';
+import { FaSatellite } from 'react-icons/fa';
 
 type LandUseClass = 'agricultural' | 'residential' | 'forest' | 'water' | 'commercial' | 'industrial' | 'unknown';
 
@@ -62,7 +63,7 @@ export default function SatelliteBadge({ parcelId, lat, lng, registeredLandUse }
   if (error) {
     return (
       <div className="flex items-center gap-2 text-xs text-gray-500 bg-gray-50 rounded-lg px-3 py-2">
-        <FiSatellite className="text-gray-400" />
+        <FaSatellite className="text-gray-400" />
         <span>Satellite unavailable</span>
       </div>
     );
@@ -76,7 +77,7 @@ export default function SatelliteBadge({ parcelId, lat, lng, registeredLandUse }
   return (
     <div className="space-y-2">
       <div className={`flex items-center gap-2 text-xs font-medium rounded-lg px-3 py-2 ${display.color}`}>
-        <FiSatellite className="opacity-70" />
+        <FaSatellite className="opacity-70" />
         <span>{display.emoji} {display.label}</span>
         <span className="ml-auto opacity-60">NDVI {ndvi.ndvi.toFixed(3)}</span>
       </div>

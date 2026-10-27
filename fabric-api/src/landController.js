@@ -57,6 +57,38 @@ router.get('/applications/email/:email', async (req, res) => {
   }
 });
 
+// Get application history by ID
+router.get('/applications/:id/history', async (req, res) => {
+  try {
+    const { id } = req.params;
+    await fabricClient.connect('user_portal');
+    const history = await fabricClient.getApplicationHistory('user_portal', id);
+    res.json({
+      success: true,
+      data: history
+    });
+  } catch (error) {
+    console.error('Get application history error:', error);
+    res.status(500).json({ error: error.message || 'Failed to fetch application history' });
+  }
+});
+
+// Get application by ID
+router.get('/applications/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    await fabricClient.connect('user_portal');
+    const application = await fabricClient.getApplication('user_portal', id);
+    res.json({
+      success: true,
+      data: application
+    });
+  } catch (error) {
+    console.error('Get application error:', error);
+    res.status(500).json({ error: error.message || 'Failed to fetch application' });
+  }
+});
+
 // Create new land application
 router.post('/applications', async (req, res) => {
   try {

@@ -35,10 +35,15 @@ async function detectOverlap(newPolygon, excludeId = null) {
 
     let intersection;
     try {
-      intersection = turf.intersect(turf.featureCollection([newFeature, existingFeature]));
+      // Turf v6 takes (poly1, poly2); Turf v7 takes featureCollection([poly1, poly2])
+      intersection = turf.intersect(newFeature, existingFeature) ||
+                     turf.intersect(turf.featureCollection([newFeature, existingFeature]));
     } catch (e) {
-      // Skip self-intersecting or degenerate polygons
-      continue;
+      try {
+        intersection = turf.intersect(turf.featureCollection([newFeature, existingFeature]));
+      } catch (_) {
+        continue;
+      }
     }
 
     if (!intersection) continue;
