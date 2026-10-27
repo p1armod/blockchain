@@ -158,8 +158,18 @@ export default function Home() {
                 </div>
               </div>
 
-              {/* Admin Link Subtle */}
+              {/* GIS Map Link */}
               <div className="pt-4">
+                <Link
+                  href="/gis-map"
+                  className="flex items-center gap-2 text-emerald-600 hover:text-emerald-800 transition-colors text-sm font-semibold bg-emerald-50 hover:bg-emerald-100 px-4 py-2 rounded-xl border border-emerald-200"
+                >
+                  <FaMap className="text-emerald-500" /> 🛰 GIS Land Map (Satellite View)
+                </Link>
+              </div>
+
+              {/* Admin Link Subtle */}
+              <div className="pt-2">
                 <Link href="/adminlogin" className="flex items-center gap-2 text-slate-400 hover:text-slate-600 transition-colors text-sm font-medium">
                   <FaCrown /> System Administration
                 </Link>

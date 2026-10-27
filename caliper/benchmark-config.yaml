@@ -1,0 +1,66 @@
+test:
+  name: GIS-Land-Registration-Benchmark
+  description: >
+    Performance benchmark for the GIS-Enhanced Land Registration System.
+    Tests TPS and latency for storeLandBoundary chaincode under load,
+    and measures overlap detection speed at varying database sizes.
+
+  workers:
+    number: 5
+
+  rounds:
+    # ── Round 1: storeLandBoundary at 10 TPS ─────────────────────────────────
+    - label: storeLandBoundary-10tps
+      description: Store polygon boundary hash at 10 TPS
+      txNumber: 100
+      rateControl:
+        type: fixed-rate
+        opts:
+          tps: 10
+      workload:
+        module: workloads/store-boundary.js
+        arguments:
+          chaincodeId: land-registration
+          channel: mychannel
+
+    # ── Round 2: storeLandBoundary at 25 TPS ─────────────────────────────────
+    - label: storeLandBoundary-25tps
+      description: Store polygon boundary hash at 25 TPS (stress test)
+      txNumber: 200
+      rateControl:
+        type: fixed-rate
+        opts:
+          tps: 25
+      workload:
+        module: workloads/store-boundary.js
+        arguments:
+          chaincodeId: land-registration
+          channel: mychannel
+
+    # ── Round 3: verifyBoundaryHash (read-only) ───────────────────────────────
+    - label: verifyBoundaryHash-query
+      description: Read-only boundary hash verification queries
+      txNumber: 200
+      rateControl:
+        type: fixed-rate
+        opts:
+          tps: 50
+      workload:
+        module: workloads/verify-boundary.js
+        arguments:
+          chaincodeId: land-registration
+          channel: mychannel
+
+    # ── Round 4: flagBoundaryConflict ────────────────────────────────────────
+    - label: flagBoundaryConflict
+      description: Flag overlapping boundary conflict records
+      txNumber: 100
+      rateControl:
+        type: fixed-rate
+        opts:
+          tps: 10
+      workload:
+        module: workloads/flag-conflict.js
+        arguments:
+          chaincodeId: land-registration
+          channel: mychannel
