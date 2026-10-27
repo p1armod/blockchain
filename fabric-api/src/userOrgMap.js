@@ -3,6 +3,8 @@ const userOrgMap = {
   // Org1 - Registration Department
   'admin-registration': 'org1',
   'user_portal': 'org1',
+  'parmodrns@gmail.com': 'org1',
+  'parmodrns': 'org1',
   'clerk1': 'org1', 'clerk': 'org1',
   'superintendent1': 'org1', 'superintendent': 'org1', 'sup': 'org1',
   'project_officer1': 'org1', 'project_officer': 'org1', 'project': 'org1', 'projectofficer1': 'org1', 'projectofficer': 'org1',

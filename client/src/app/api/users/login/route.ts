@@ -20,8 +20,13 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Find user
-    const user = await User.findOne({ username }).select('+password');
+    // Find user by username or email
+    const user = await User.findOne({
+      $or: [
+        { username },
+        { email: username.toLowerCase() }
+      ]
+    }).select('+password');
 
     if (!user) {
       return NextResponse.json(

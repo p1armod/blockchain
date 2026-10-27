@@ -31,6 +31,8 @@ const users = {
   // Org1 users
   'admin-registration': { password: 'adminpw', role: 'admin', org: 'org1' },
   'user_portal': { password: 'portal123', role: 'user', org: 'org1' },
+  'parmodrns@gmail.com': { password: '12345678', role: 'user', org: 'org1' },
+  'parmodrns': { password: '12345678', role: 'user', org: 'org1' },
   'clerk1': { password: 'clerk123', role: 'clerk', org: 'org1' },
   'superintendent1': { password: 'super123', role: 'superintendent', org: 'org1' },
   'project_officer1': { password: 'project123', role: 'project_officer', org: 'org1' },
